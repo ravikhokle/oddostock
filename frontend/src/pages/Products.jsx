@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { productAPI, categoryAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, Package, X } from 'lucide-react';
+import { Plus, Search, Package, X, Edit, Trash2 } from 'lucide-react';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -15,16 +15,16 @@ const Products = () => {
     name: '',
     sku: '',
     category: '',
-    description: '',
     unitOfMeasure: 'pcs',
-    cost: '',
     price: '',
-    reorderLevel: '',
-    reorderQuantity: ''
+    initialStock: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -79,6 +79,36 @@ const Products = () => {
     }
   };
 
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      sku: product.sku,
+      category: product.category._id,
+      unitOfMeasure: product.unitOfMeasure,
+      price: product.price,
+      initialStock: ''
+    });
+    setShowModal(true);
+  };
+
+  const handleDeleteProduct = (product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await productAPI.delete(productToDelete._id);
+      toast.success('Product deleted successfully');
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      fetchProducts();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete product');
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     
@@ -95,10 +125,6 @@ const Products = () => {
       toast.error('Category is required');
       return;
     }
-    if (!formData.cost || formData.cost <= 0) {
-      toast.error('Cost must be greater than 0');
-      return;
-    }
     if (!formData.price || formData.price <= 0) {
       toast.error('Price must be greater than 0');
       return;
@@ -106,23 +132,31 @@ const Products = () => {
 
     setSubmitting(true);
     try {
-      await productAPI.create(formData);
-      toast.success('Product added successfully');
+      if (editingProduct) {
+        // Update existing product
+        const { initialStock, ...updateData } = formData;
+        await productAPI.update(editingProduct._id, updateData);
+        toast.success('Product updated successfully');
+      } else {
+        // Create new product
+        await productAPI.create(formData);
+        toast.success('Product added successfully');
+      }
+      
       setFormData({
         name: '',
         sku: '',
         category: '',
-        description: '',
         unitOfMeasure: 'pcs',
-        cost: '',
         price: '',
-        reorderLevel: '',
-        reorderQuantity: ''
+        initialStock: ''
       });
       setShowModal(false);
+      setEditingProduct(null);
       fetchProducts(); // Refresh the product list
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add product');
+      const action = editingProduct ? 'update' : 'add';
+      toast.error(error.response?.data?.message || `Failed to ${action} product`);
     } finally {
       setSubmitting(false);
     }
@@ -140,16 +174,14 @@ const Products = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setEditingProduct(null);
     setFormData({
       name: '',
       sku: '',
       category: '',
-      description: '',
       unitOfMeasure: 'pcs',
-      cost: '',
       price: '',
-      reorderLevel: '',
-      reorderQuantity: ''
+      initialStock: ''
     });
   };
 
@@ -251,9 +283,9 @@ const Products = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -265,21 +297,26 @@ const Products = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{product.sku}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.totalStock <= product.reorderLevel
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {product.totalStock || 0}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{product.unitOfMeasure}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">₹{product.price}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{product.totalStock || 0}</td>
                       <td className="px-6 py-4">
-                        <button className="text-primary-600 hover:text-primary-800 text-sm font-medium">
-                          View
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditProduct(product)}
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                            title="Edit product"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product)}
+                            className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                            title="Delete product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -295,7 +332,9 @@ const Products = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Add New Product</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h2>
               <button
                 onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600"
@@ -324,7 +363,7 @@ const Products = () => {
                 {/* SKU */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    SKU *
+                    SKU / Code *
                   </label>
                   <input
                     type="text"
@@ -412,27 +451,10 @@ const Products = () => {
                   </select>
                 </div>
 
-                {/* Cost */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cost Price *
-                  </label>
-                  <input
-                    type="number"
-                    name="cost"
-                    value={formData.cost}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
                 {/* Price */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Selling Price *
+                    Price *
                   </label>
                   <input
                     type="number"
@@ -446,31 +468,15 @@ const Products = () => {
                   />
                 </div>
 
-                {/* Reorder Level */}
+                {/* Initial Stock */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reorder Level
+                    Initial Stock (Optional)
                   </label>
                   <input
                     type="number"
-                    name="reorderLevel"
-                    value={formData.reorderLevel}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                    min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
-                {/* Reorder Quantity */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reorder Quantity
-                  </label>
-                  <input
-                    type="number"
-                    name="reorderQuantity"
-                    value={formData.reorderQuantity}
+                    name="initialStock"
+                    value={formData.initialStock}
                     onChange={handleInputChange}
                     placeholder="0"
                     min="0"
@@ -479,20 +485,7 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter product description..."
-                  rows="4"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                ></textarea>
-              </div>
+
 
               {/* Form Actions */}
               <div className="flex gap-4 pt-6 border-t border-gray-200">
@@ -508,10 +501,49 @@ const Products = () => {
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg hover:from-primary-700 hover:to-primary-800 font-semibold disabled:from-primary-400 disabled:to-primary-400 transform hover:scale-105 active:scale-95 transition-all duration-200"
                 >
-                  {submitting ? 'Adding...' : 'Add Product'}
+                  {submitting 
+                    ? (editingProduct ? 'Updating...' : 'Adding...') 
+                    : (editingProduct ? 'Update Product' : 'Add Product')
+                  }
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Delete Product
+              </h3>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setProductToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
