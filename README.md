@@ -158,26 +158,6 @@ sudo systemctl start mongod
 mongod --dbpath /data/db
 ```
 
-### Seed the Database
-
-Run the seed script to populate sample data:
-
-```bash
-cd backend
-npm run seed
-```
-
-This will create:
-- 2 users (admin and manager)
-- 3 product categories
-- 2 warehouses with locations
-- 5 sample products
-- Initial stock entries
-
-**Login Credentials:**
-- Admin: `admin@stockmaster.com` / `password123`
-- Manager: `manager@stockmaster.com` / `password123`
-
 ## 🚀 Running the Application
 
 ### Start Backend Server
@@ -261,7 +241,6 @@ odoostock/
 │   ├── validators/
 │   │   └── auth.validator.js
 │   ├── scripts/
-│   │   └── seed.js
 │   ├── .env.example
 │   ├── package.json
 │   └── server.js
