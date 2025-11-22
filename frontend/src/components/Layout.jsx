@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   Package,
+  Tags,
   TruckIcon,
   Send,
   ArrowLeftRight,
@@ -28,6 +29,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Inventory', href: '/products', icon: Package },
+    { name: 'Categories', href: '/categories', icon: Tags },
     { name: 'Receipts', href: '/receipts', icon: TruckIcon },
     { name: 'Deliveries', href: '/deliveries', icon: Send },
     { name: 'Internal Transfers', href: '/transfers', icon: ArrowLeftRight },
