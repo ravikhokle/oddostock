@@ -18,8 +18,15 @@ import moveHistoryRoutes from './routes/moveHistory.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticateSocket } from './middleware/socketAuth.js';
 
-// Load environment variables
+// Load environment variables FIRST
 dotenv.config();
+
+// Verify critical environment variables
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  console.error('❌ ERROR: EMAIL_USER and EMAIL_PASSWORD must be set in .env file');
+  console.error('Current EMAIL_USER:', process.env.EMAIL_USER);
+  console.error('EMAIL_PASSWORD exists:', !!process.env.EMAIL_PASSWORD);
+}
 
 // Initialize Express app
 const app = express();

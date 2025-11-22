@@ -3,6 +3,10 @@ import productService from '../services/product.service.js';
 export const createProduct = async (req, res, next) => {
   try {
     const product = await productService.createProduct(req.body);
+    // Emit socket event so dashboards and other clients can update
+    const io = req.app.get('io');
+    if (io) io.emit('product:created', product);
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
@@ -16,9 +20,12 @@ export const createProduct = async (req, res, next) => {
 export const getAllProducts = async (req, res, next) => {
   try {
     const products = await productService.getAllProducts(req.query);
+    console.log(`Returning ${products.length} products to frontend`);
+    products.forEach((product, index) => {
+      console.log(`Product ${index + 1}: ${product.name} - totalStock: ${product.totalStock}`);
+    });
     res.status(200).json({
       success: true,
-      count: products.length,
       data: products
     });
   } catch (error) {
@@ -40,6 +47,7 @@ export const getProductById = async (req, res, next) => {
 
 export const updateProduct = async (req, res, next) => {
   try {
+    console.log('Update product request - ID:', req.params.id, 'Body:', req.body);
     const product = await productService.updateProduct(req.params.id, req.body);
     res.status(200).json({
       success: true,
@@ -47,6 +55,7 @@ export const updateProduct = async (req, res, next) => {
       data: product
     });
   } catch (error) {
+    console.error('Update product error:', error);
     next(error);
   }
 };
