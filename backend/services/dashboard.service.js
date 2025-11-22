@@ -31,7 +31,7 @@ class DashboardService {
       if (totalQty <= 0) outOfStockCount++;
     }
 
-    const pendingReceipts = await Receipt.countDocuments({ status: { $in: ['draft', 'waiting', 'ready'] } });
+    const pendingReceipts = await Receipt.countDocuments({ status: { $in: ['draft', 'pending'] } });
     const pendingDeliveries = await Delivery.countDocuments({ status: { $in: ['draft', 'waiting', 'picking', 'packing', 'ready'] } });
     const scheduledTransfers = await InternalTransfer.countDocuments({ status: { $in: ['draft', 'waiting', 'in_transit'] } });
 
@@ -85,7 +85,7 @@ class DashboardService {
 
   async getToBeReceived() {
     const pendingReceipts = await Receipt.find({
-      status: { $in: ['draft', 'waiting', 'ready'] }
+      status: { $in: ['draft', 'pending'] }
     });
 
     let total = 0;
