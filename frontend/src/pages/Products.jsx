@@ -86,8 +86,8 @@ const Products = () => {
       sku: product.sku,
       category: product.category._id,
       unitOfMeasure: product.unitOfMeasure,
-      price: product.price,
-      initialStock: ''
+      price: product.price.toString(),
+      initialStock: (product.totalStock || product.initialStock || 0).toString()
     });
     setShowModal(true);
   };
@@ -134,12 +134,22 @@ const Products = () => {
     try {
       if (editingProduct) {
         // Update existing product
-        const { initialStock, ...updateData } = formData;
-        await productAPI.update(editingProduct._id, updateData);
+        // Convert numeric fields to proper types
+        const processedUpdateData = {
+          ...formData,
+          price: parseFloat(formData.price) || 0,
+          initialStock: parseFloat(formData.initialStock) || 0
+        };
+        await productAPI.update(editingProduct._id, processedUpdateData);
         toast.success('Product updated successfully');
       } else {
         // Create new product
-        await productAPI.create(formData);
+        const processedFormData = {
+          ...formData,
+          price: parseFloat(formData.price) || 0,
+          initialStock: parseFloat(formData.initialStock) || 0
+        };
+        await productAPI.create(processedFormData);
         toast.success('Product added successfully');
       }
       
@@ -471,7 +481,7 @@ const Products = () => {
                 {/* Initial Stock */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Initial Stock (Optional)
+                    {editingProduct ? 'Current Stock (Optional)' : 'Initial Stock (Optional)'}
                   </label>
                   <input
                     type="number"

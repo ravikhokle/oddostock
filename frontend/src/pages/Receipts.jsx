@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
   Plus,
-  Sliders,
-} from 'react-feather';
+  SlidersHorizontal as Sliders,
+} from 'lucide-react';
 import Layout from '../components/Layout';
 
 const Receipts = () => {
