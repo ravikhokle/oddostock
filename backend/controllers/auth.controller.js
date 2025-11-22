@@ -83,3 +83,32 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, token } = req.body;
+    const result = await authService.verifyEmail(email, token);
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendVerification(email);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

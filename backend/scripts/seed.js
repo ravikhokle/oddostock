@@ -29,22 +29,24 @@ const seedData = async () => {
     ]);
     console.log('🗑️  Cleared existing data');
 
-    // Create Users
+    // Create Users (with email verified for seed data)
     const admin = await User.create({
       name: 'Admin User',
       email: 'admin@stockmaster.com',
       password: 'password123',
-      role: 'admin'
+      role: 'admin',
+      isEmailVerified: true
     });
 
     const manager = await User.create({
       name: 'Manager User',
       email: 'manager@stockmaster.com',
       password: 'password123',
-      role: 'manager'
+      role: 'manager',
+      isEmailVerified: true
     });
 
-    console.log('👤 Created users');
+    console.log('👤 Created users (email verified)');
 
     // Create Categories
     const electronicsCategory = await Category.create({

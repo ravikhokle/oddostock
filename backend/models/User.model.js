@@ -28,6 +28,12 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'manager', 'warehouse_staff'],
     default: 'warehouse_staff'
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: String,
+  emailVerificationExpire: Date,
   resetPasswordOTP: String,
   resetPasswordExpire: Date,
   isActive: {

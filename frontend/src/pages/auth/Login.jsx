@@ -12,6 +12,8 @@ const Login = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [errorTimeout, setErrorTimeout] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -22,6 +24,14 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Clear any existing error and timeout
+    setError('');
+    if (errorTimeout) {
+      clearTimeout(errorTimeout);
+      setErrorTimeout(null);
+    }
+    
     setLoading(true);
 
     try {
@@ -29,7 +39,25 @@ const Login = () => {
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      
+      // Set error state for display on page
+      setError(errorMessage);
+      console.log('Setting error:', errorMessage); // Debug log
+      
+      // Auto-clear error after 4 seconds
+      const timeout = setTimeout(() => {
+        setError('');
+        setErrorTimeout(null);
+      }, 4000);
+      setErrorTimeout(timeout);
+      
+      // If email not verified, redirect to verification page
+      if (errorMessage.includes('verify your email')) {
+        setTimeout(() => {
+          navigate('/verify-email', { state: { email: formData.email } });
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,6 +95,17 @@ const Login = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg animate-pulse">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm text-red-800 font-medium">{error}</p>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
