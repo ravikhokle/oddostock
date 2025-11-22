@@ -1,16 +1,43 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+// Ensure environment variables are loaded
+dotenv.config();
 
 class EmailService {
   constructor() {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASSWORD;
+    
+    console.log('📧 Initializing email service...');
+    console.log('EMAIL_USER:', emailUser || '❌ NOT SET');
+    console.log('EMAIL_PASSWORD exists:', !!emailPass);
+    console.log('EMAIL_PASSWORD length:', emailPass?.length || 0);
+    
+    if (!emailUser || !emailPass) {
+      console.error('❌ CRITICAL: Email credentials missing! Check .env file');
+      throw new Error('Email credentials not configured');
+    }
+    
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false,
+      service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
+        user: emailUser,
+        pass: emailPass
       }
     });
+    
+    // Verify connection on startup
+    this.verifyConnection();
+  }
+  
+  async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      console.log('✅ Email service ready - SMTP connection verified');
+    } catch (error) {
+      console.error('❌ Email service error - SMTP connection failed:', error.message);
+    }
   }
 
   async sendOTP(email, otp, name) {
@@ -55,10 +82,21 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      console.log('📤 Attempting to send OTP email to:', email);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('✅ OTP email sent successfully!');
+      console.log('   → Recipient:', email);
+      console.log('   → Message ID:', info.messageId);
+      console.log('   → Response:', info.response);
       return true;
     } catch (error) {
-      console.error('Email sending error:', error);
+      console.error('❌ Email sending failed!');
+      console.error('   → Recipient:', email);
+      console.error('   → Error:', error.message);
+      console.error('   → Code:', error.code);
+      if (error.code === 'EAUTH') {
+        console.error('   → Authentication failed - check EMAIL_USER and EMAIL_PASSWORD');
+      }
       return false;
     }
   }
