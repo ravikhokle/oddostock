@@ -73,12 +73,27 @@ const internalTransferSchema = new mongoose.Schema({
 });
 
 // Auto-generate transfer number
-internalTransferSchema.pre('save', async function(next) {
-  if (this.isNew) {
-    const count = await mongoose.model('InternalTransfer').countDocuments();
-    this.transferNumber = `TRF-${String(count + 1).padStart(6, '0')}`;
+internalTransferSchema.pre('save', async function() {
+  if (this.isNew && !this.transferNumber) {
+    try {
+      const lastTransfer = await mongoose.model('InternalTransfer')
+        .findOne({}, { transferNumber: 1 })
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      let nextNumber = 1;
+      if (lastTransfer && lastTransfer.transferNumber) {
+        const lastNumber = parseInt(lastTransfer.transferNumber.split('-')[1]);
+        nextNumber = lastNumber + 1;
+      }
+      
+      this.transferNumber = `TRF-${String(nextNumber).padStart(6, '0')}`;
+      console.log('Generated transfer number:', this.transferNumber);
+    } catch (error) {
+      console.error('Error generating transfer number:', error);
+      this.transferNumber = `TRF-${Date.now()}`;
+    }
   }
-  next();
 });
 
 export default mongoose.model('InternalTransfer', internalTransferSchema);

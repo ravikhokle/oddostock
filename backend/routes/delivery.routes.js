@@ -4,6 +4,8 @@ import {
   getAllDeliveries,
   getDeliveryById,
   updateDelivery,
+  pickItems,
+  packItems,
   validateDelivery,
   cancelDelivery
 } from '../controllers/delivery.controller.js';
@@ -21,6 +23,8 @@ router.route('/:id')
   .get(getDeliveryById)
   .put(updateDelivery);
 
+router.post('/:id/pick', pickItems);
+router.post('/:id/pack', packItems);
 router.post('/:id/validate', validateDelivery);
 router.post('/:id/cancel', cancelDelivery);
 

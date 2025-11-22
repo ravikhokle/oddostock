@@ -5,9 +5,20 @@ import mongoose from 'mongoose';
 
 class AdjustmentService {
   async createAdjustment(adjustmentData, userId) {
-    adjustmentData.createdBy = userId;
-    const adjustment = await StockAdjustment.create(adjustmentData);
-    return adjustment.populate(['warehouse', 'location', 'items.product']);
+    try {
+      adjustmentData.createdBy = userId;
+      delete adjustmentData.adjustmentNumber;
+      
+      console.log('Creating adjustment with data:', JSON.stringify(adjustmentData, null, 2));
+      
+      const adjustment = await StockAdjustment.create(adjustmentData);
+      console.log('Adjustment created successfully:', adjustment.adjustmentNumber);
+      
+      return adjustment.populate(['warehouse', 'location', 'items.product']);
+    } catch (error) {
+      console.error('Error in createAdjustment service:', error.message);
+      throw error;
+    }
   }
 
   async getAllAdjustments(filters = {}) {

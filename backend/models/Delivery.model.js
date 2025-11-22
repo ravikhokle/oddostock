@@ -87,12 +87,27 @@ const deliverySchema = new mongoose.Schema({
 });
 
 // Auto-generate delivery number
-deliverySchema.pre('save', async function(next) {
-  if (this.isNew) {
-    const count = await mongoose.model('Delivery').countDocuments();
-    this.deliveryNumber = `DEL-${String(count + 1).padStart(6, '0')}`;
+deliverySchema.pre('save', async function() {
+  if (this.isNew && !this.deliveryNumber) {
+    try {
+      const lastDelivery = await mongoose.model('Delivery')
+        .findOne({}, { deliveryNumber: 1 })
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      let nextNumber = 1;
+      if (lastDelivery && lastDelivery.deliveryNumber) {
+        const lastNumber = parseInt(lastDelivery.deliveryNumber.split('-')[1]);
+        nextNumber = lastNumber + 1;
+      }
+      
+      this.deliveryNumber = `DEL-${String(nextNumber).padStart(6, '0')}`;
+      console.log('Generated delivery number:', this.deliveryNumber);
+    } catch (error) {
+      console.error('Error generating delivery number:', error);
+      this.deliveryNumber = `DEL-${Date.now()}`;
+    }
   }
-  next();
 });
 
 export default mongoose.model('Delivery', deliverySchema);

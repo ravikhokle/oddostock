@@ -74,6 +74,8 @@ export const deliveryAPI = {
   getById: (id) => api.get(`/deliveries/${id}`),
   create: (data) => api.post('/deliveries', data),
   update: (id, data) => api.put(`/deliveries/${id}`, data),
+  pick: (id, items) => api.post(`/deliveries/${id}/pick`, { items }),
+  pack: (id, items) => api.post(`/deliveries/${id}/pack`, { items }),
   validate: (id) => api.post(`/deliveries/${id}/validate`),
   cancel: (id) => api.post(`/deliveries/${id}/cancel`)
 };
@@ -127,7 +129,7 @@ export const categoryAPI = {
 
 // Move History APIs
 export const moveHistoryAPI = {
-  getAll: (params) => api.get('/move-history', { params }),
+  getAll: (params = {}) => api.get('/move-history', { params }),
   getByProduct: (productId) => api.get(`/move-history/product/${productId}`)
 };
 
