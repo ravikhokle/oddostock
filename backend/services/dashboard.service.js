@@ -22,12 +22,13 @@ class DashboardService {
     const stockMap = new Map();
     stockAgg.forEach(item => stockMap.set(String(item._id), item.totalQuantity));
 
-    const products = await Product.find({ isActive: true }).select('_id reorderLevel');
+    const products = await Product.find({ isActive: true }).select('_id initialStock');
 
     let outOfStockCount = 0;
     for (const product of products) {
-      const qty = stockMap.get(String(product._id)) || 0;
-      if (qty === 0) outOfStockCount++;
+      const ledgerQty = stockMap.get(String(product._id)) || 0;
+      const totalQty = (product.initialStock || 0) + ledgerQty;
+      if (totalQty <= 0) outOfStockCount++;
     }
 
     const pendingReceipts = await Receipt.countDocuments({ status: { $in: ['draft', 'waiting', 'ready'] } });
