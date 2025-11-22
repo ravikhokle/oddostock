@@ -5,9 +5,20 @@ import mongoose from 'mongoose';
 
 class DeliveryService {
   async createDelivery(deliveryData, userId) {
-    deliveryData.createdBy = userId;
-    const delivery = await Delivery.create(deliveryData);
-    return delivery.populate(['warehouse', 'location', 'items.product']);
+    try {
+      deliveryData.createdBy = userId;
+      delete deliveryData.deliveryNumber;
+      
+      console.log('Creating delivery with data:', JSON.stringify(deliveryData, null, 2));
+      
+      const delivery = await Delivery.create(deliveryData);
+      console.log('Delivery created successfully:', delivery.deliveryNumber);
+      
+      return delivery.populate(['warehouse', 'location', 'items.product']);
+    } catch (error) {
+      console.error('Error in createDelivery service:', error.message);
+      throw error;
+    }
   }
 
   async getAllDeliveries(filters = {}) {
@@ -51,6 +62,57 @@ class DeliveryService {
     }
 
     Object.assign(delivery, updates);
+    await delivery.save();
+
+    return delivery.populate(['warehouse', 'location', 'items.product']);
+  }
+
+  async pickItems(deliveryId, items, userId) {
+    const delivery = await Delivery.findById(deliveryId);
+    
+    if (!delivery) {
+      throw new AppError('Delivery not found', 404);
+    }
+
+    if (delivery.status === 'done' || delivery.status === 'cancelled') {
+      throw new AppError('Cannot pick items for completed or cancelled delivery', 400);
+    }
+
+    // Update picked quantities
+    items.forEach(({ productId, quantityPicked }) => {
+      const item = delivery.items.find(i => i.product.toString() === productId);
+      if (item) {
+        item.quantityPicked = quantityPicked;
+      }
+    });
+
+    delivery.status = 'picking';
+    await delivery.save();
+
+    return delivery.populate(['warehouse', 'location', 'items.product']);
+  }
+
+  async packItems(deliveryId, items, userId) {
+    const delivery = await Delivery.findById(deliveryId);
+    
+    if (!delivery) {
+      throw new AppError('Delivery not found', 404);
+    }
+
+    if (delivery.status === 'done' || delivery.status === 'cancelled') {
+      throw new AppError('Cannot pack items for completed or cancelled delivery', 400);
+    }
+
+    // Update packed quantities
+    items.forEach(({ productId, quantityPacked }) => {
+      const item = delivery.items.find(i => i.product.toString() === productId);
+      if (item) {
+        item.quantityPacked = quantityPacked;
+        item.quantityDelivered = quantityPacked; // Packed = delivered
+      }
+    });
+
+    delivery.status = 'ready';
     await delivery.save();
 
     return delivery.populate(['warehouse', 'location', 'items.product']);

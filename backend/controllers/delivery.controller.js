@@ -59,6 +59,40 @@ export const updateDelivery = async (req, res, next) => {
   }
 };
 
+export const pickItems = async (req, res, next) => {
+  try {
+    const delivery = await deliveryService.pickItems(req.params.id, req.body.items, req.user._id);
+    
+    const io = req.app.get('io');
+    io.emit('delivery:picked', delivery);
+
+    res.status(200).json({
+      success: true,
+      message: 'Items picked successfully',
+      data: delivery
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const packItems = async (req, res, next) => {
+  try {
+    const delivery = await deliveryService.packItems(req.params.id, req.body.items, req.user._id);
+    
+    const io = req.app.get('io');
+    io.emit('delivery:packed', delivery);
+
+    res.status(200).json({
+      success: true,
+      message: 'Items packed successfully',
+      data: delivery
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const validateDelivery = async (req, res, next) => {
   try {
     const delivery = await deliveryService.validateDelivery(req.params.id, req.user._id);

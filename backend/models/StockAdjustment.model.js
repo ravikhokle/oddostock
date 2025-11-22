@@ -70,12 +70,27 @@ const stockAdjustmentSchema = new mongoose.Schema({
 });
 
 // Auto-generate adjustment number
-stockAdjustmentSchema.pre('save', async function(next) {
-  if (this.isNew) {
-    const count = await mongoose.model('StockAdjustment').countDocuments();
-    this.adjustmentNumber = `ADJ-${String(count + 1).padStart(6, '0')}`;
+stockAdjustmentSchema.pre('save', async function() {
+  if (this.isNew && !this.adjustmentNumber) {
+    try {
+      const lastAdjustment = await mongoose.model('StockAdjustment')
+        .findOne({}, { adjustmentNumber: 1 })
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      let nextNumber = 1;
+      if (lastAdjustment && lastAdjustment.adjustmentNumber) {
+        const lastNumber = parseInt(lastAdjustment.adjustmentNumber.split('-')[1]);
+        nextNumber = lastNumber + 1;
+      }
+      
+      this.adjustmentNumber = `ADJ-${String(nextNumber).padStart(6, '0')}`;
+      console.log('Generated adjustment number:', this.adjustmentNumber);
+    } catch (error) {
+      console.error('Error generating adjustment number:', error);
+      this.adjustmentNumber = `ADJ-${Date.now()}`;
+    }
   }
-  next();
 });
 
 export default mongoose.model('StockAdjustment', stockAdjustmentSchema);

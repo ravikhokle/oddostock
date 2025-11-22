@@ -5,15 +5,26 @@ import mongoose from 'mongoose';
 
 class TransferService {
   async createTransfer(transferData, userId) {
-    transferData.createdBy = userId;
-    const transfer = await InternalTransfer.create(transferData);
-    return transfer.populate([
-      'sourceWarehouse',
-      'sourceLocation',
-      'destinationWarehouse',
-      'destinationLocation',
-      'items.product'
-    ]);
+    try {
+      transferData.createdBy = userId;
+      delete transferData.transferNumber;
+      
+      console.log('Creating transfer with data:', JSON.stringify(transferData, null, 2));
+      
+      const transfer = await InternalTransfer.create(transferData);
+      console.log('Transfer created successfully:', transfer.transferNumber);
+      
+      return transfer.populate([
+        'sourceWarehouse',
+        'sourceLocation',
+        'destinationWarehouse',
+        'destinationLocation',
+        'items.product'
+      ]);
+    } catch (error) {
+      console.error('Error in createTransfer service:', error.message);
+      throw error;
+    }
   }
 
   async getAllTransfers(filters = {}) {

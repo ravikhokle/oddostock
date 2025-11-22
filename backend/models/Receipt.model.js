@@ -48,12 +48,12 @@ const receiptSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['draft', 'waiting', 'ready', 'done', 'cancelled'],
-    default: 'draft'
+    enum: ['draft', 'pending', 'validated', 'cancelled'],
+    default: 'pending'
   },
   expectedDate: {
     type: Date,
-    required: true
+    default: Date.now
   },
   receivedDate: {
     type: Date
@@ -76,12 +76,29 @@ const receiptSchema = new mongoose.Schema({
 });
 
 // Auto-generate receipt number
-receiptSchema.pre('save', async function(next) {
-  if (this.isNew) {
-    const count = await mongoose.model('Receipt').countDocuments();
-    this.receiptNumber = `RCP-${String(count + 1).padStart(6, '0')}`;
+receiptSchema.pre('save', async function() {
+  if (this.isNew && !this.receiptNumber) {
+    try {
+      // Find the last receipt number to avoid duplicates
+      const lastReceipt = await mongoose.model('Receipt')
+        .findOne({}, { receiptNumber: 1 })
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      let nextNumber = 1;
+      if (lastReceipt && lastReceipt.receiptNumber) {
+        const lastNumber = parseInt(lastReceipt.receiptNumber.split('-')[1]);
+        nextNumber = lastNumber + 1;
+      }
+      
+      this.receiptNumber = `RCP-${String(nextNumber).padStart(6, '0')}`;
+      console.log('Generated receipt number:', this.receiptNumber);
+    } catch (error) {
+      console.error('Error generating receipt number:', error);
+      // Fallback to timestamp-based number if generation fails
+      this.receiptNumber = `RCP-${Date.now()}`;
+    }
   }
-  next();
 });
 
 export default mongoose.model('Receipt', receiptSchema);

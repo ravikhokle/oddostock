@@ -5,9 +5,22 @@ import mongoose from 'mongoose';
 
 class ReceiptService {
   async createReceipt(receiptData, userId) {
-    receiptData.createdBy = userId;
-    const receipt = await Receipt.create(receiptData);
-    return receipt.populate(['warehouse', 'location', 'items.product']);
+    try {
+      receiptData.createdBy = userId;
+      
+      // Ensure receiptNumber is not in the data (let the model generate it)
+      delete receiptData.receiptNumber;
+      
+      console.log('Creating receipt with data:', JSON.stringify(receiptData, null, 2));
+      
+      const receipt = await Receipt.create(receiptData);
+      console.log('Receipt created successfully:', receipt.receiptNumber);
+      
+      return receipt.populate(['warehouse', 'location', 'items.product']);
+    } catch (error) {
+      console.error('Error in createReceipt service:', error.message);
+      throw error;
+    }
   }
 
   async getAllReceipts(filters = {}) {
@@ -46,8 +59,8 @@ class ReceiptService {
       throw new AppError('Receipt not found', 404);
     }
 
-    if (receipt.status === 'done' || receipt.status === 'cancelled') {
-      throw new AppError('Cannot update completed or cancelled receipt', 400);
+    if (receipt.status === 'validated' || receipt.status === 'cancelled') {
+      throw new AppError('Cannot update validated or cancelled receipt', 400);
     }
 
     Object.assign(receipt, updates);
@@ -67,7 +80,7 @@ class ReceiptService {
         throw new AppError('Receipt not found', 404);
       }
 
-      if (receipt.status === 'done') {
+      if (receipt.status === 'validated') {
         throw new AppError('Receipt already validated', 400);
       }
 
@@ -98,7 +111,7 @@ class ReceiptService {
         }
       }
 
-      receipt.status = 'done';
+      receipt.status = 'validated';
       receipt.receivedDate = new Date();
       receipt.validatedBy = userId;
       await receipt.save({ session });
@@ -121,7 +134,7 @@ class ReceiptService {
       throw new AppError('Receipt not found', 404);
     }
 
-    if (receipt.status === 'done') {
+    if (receipt.status === 'validated') {
       throw new AppError('Cannot cancel validated receipt', 400);
     }
 
