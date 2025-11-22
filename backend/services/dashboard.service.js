@@ -6,127 +6,40 @@ import StockLedger from '../models/StockLedger.model.js';
 
 class DashboardService {
   async getDashboardKPIs(filters = {}) {
-    // Total Products in Stock
+    // Compute only the KPIs requested: total products, out-of-stock, pending receipts, pending deliveries, scheduled transfers
     const totalProducts = await Product.countDocuments({ isActive: true });
 
-    // Low Stock / Out of Stock Items
-    const products = await Product.find({ isActive: true });
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-
-    for (const product of products) {
-      const stockAgg = await StockLedger.aggregate([
-        { $match: { product: product._id } },
-        { $group: { _id: null, total: { $sum: '$quantity' } } }
-      ]);
-
-      const totalStock = stockAgg.length > 0 ? stockAgg[0].total : 0;
-
-      if (totalStock === 0) {
-        outOfStockCount++;
-      } else if (totalStock <= product.reorderLevel) {
-        lowStockCount++;
+    // Compute out of stock count efficiently by aggregating stockledger sums per product
+    const stockAgg = await StockLedger.aggregate([
+      {
+        $group: {
+          _id: '$product',
+          totalQuantity: { $sum: '$quantity' }
+        }
       }
+    ]);
+
+    const stockMap = new Map();
+    stockAgg.forEach(item => stockMap.set(String(item._id), item.totalQuantity));
+
+    const products = await Product.find({ isActive: true }).select('_id reorderLevel');
+
+    let outOfStockCount = 0;
+    for (const product of products) {
+      const qty = stockMap.get(String(product._id)) || 0;
+      if (qty === 0) outOfStockCount++;
     }
 
-    // Pending Receipts
-    const pendingReceipts = await Receipt.countDocuments({
-      status: { $in: ['draft', 'waiting', 'ready'] }
-    });
-
-    // Pending Deliveries
-    const pendingDeliveries = await Delivery.countDocuments({
-      status: { $in: ['draft', 'waiting', 'picking', 'packing', 'ready'] }
-    });
-
-    // Internal Transfers Scheduled
-    const scheduledTransfers = await InternalTransfer.countDocuments({
-      status: { $in: ['draft', 'waiting', 'in_transit'] }
-    });
-
-    // Total Stock Value
-    const stockValue = await this.getTotalStockValue();
-
-    // Recent Activities
-    const recentActivities = await StockLedger.find()
-      .populate(['product', 'warehouse', 'location', 'performedBy'])
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    // Sales & Purchase Overview (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const salesData = await Delivery.aggregate([
-      {
-        $match: {
-          status: 'done',
-          deliveredDate: { $gte: thirtyDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalSales: { $sum: 1 },
-          totalRevenue: {
-            $sum: {
-              $reduce: {
-                input: '$items',
-                initialValue: 0,
-                in: {
-                  $add: [
-                    '$$value',
-                    { $multiply: ['$$this.quantityDelivered', '$$this.unitPrice'] }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    ]);
-
-    const purchaseData = await Receipt.aggregate([
-      {
-        $match: {
-          status: 'done',
-          receivedDate: { $gte: thirtyDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalPurchases: { $sum: 1 },
-          totalCost: {
-            $sum: {
-              $reduce: {
-                input: '$items',
-                initialValue: 0,
-                in: {
-                  $add: [
-                    '$$value',
-                    { $multiply: ['$$this.quantityReceived', '$$this.unitPrice'] }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    ]);
+    const pendingReceipts = await Receipt.countDocuments({ status: { $in: ['draft', 'waiting', 'ready'] } });
+    const pendingDeliveries = await Delivery.countDocuments({ status: { $in: ['draft', 'waiting', 'picking', 'packing', 'ready'] } });
+    const scheduledTransfers = await InternalTransfer.countDocuments({ status: { $in: ['draft', 'waiting', 'in_transit'] } });
 
     return {
       totalProducts,
-      lowStockItems: lowStockCount,
       outOfStockItems: outOfStockCount,
       pendingReceipts,
       pendingDeliveries,
-      scheduledTransfers,
-      stockValue,
-      sales: salesData[0] || { totalSales: 0, totalRevenue: 0 },
-      purchase: purchaseData[0] || { totalPurchases: 0, totalCost: 0 },
-      profit: (salesData[0]?.totalRevenue || 0) - (purchaseData[0]?.totalCost || 0),
-      recentActivities
+      scheduledTransfers
     };
   }
 
