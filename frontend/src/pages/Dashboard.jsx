@@ -131,7 +131,7 @@ const Dashboard = () => {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your inventory today.</p>
+          <p className="text-gray-600 mt-1">Welcome to my website what's happening with your inventory today.</p>
         </div>
 
         {/* Sales Overview Stats */}
