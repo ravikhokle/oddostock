@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { authAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { User, Mail, Lock } from 'lucide-react';
 
@@ -32,9 +33,18 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.password);
-      toast.success('Account created successfully!');
-      navigate('/');
+      const response = await authAPI.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      });
+      
+      toast.success(response.data.data.message || 'Registration successful! Check your email.');
+      
+      // Redirect to verification page
+      navigate('/verify-email', { 
+        state: { email: formData.email } 
+      });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {

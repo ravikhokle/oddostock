@@ -13,13 +13,56 @@ class AuthService {
       throw new AppError('User already exists with this email', 400);
     }
 
+    // Generate 6-digit verification token
+    const verificationToken = crypto.randomInt(100000, 999999).toString();
+
     // Create user
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'warehouse_staff'
+      role: role || 'warehouse_staff',
+      emailVerificationToken: verificationToken,
+      emailVerificationExpire: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
     });
+
+    // Send verification email
+    const emailSent = await emailService.sendVerificationEmail(email, verificationToken, name);
+
+    if (!emailSent) {
+      // Delete user if email fails
+      await User.findByIdAndDelete(user._id);
+      throw new AppError('Failed to send verification email. Please try again.', 500);
+    }
+
+    return {
+      message: 'Registration successful! Please check your email to verify your account.',
+      email: user.email
+    };
+  }
+
+  async login(email, password) {
+    // Check if user exists
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      throw new AppError('Wrong username or password', 401);
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      throw new AppError('Please verify your email before logging in. Check your inbox for the verification code.', 403);
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      throw new AppError('Your account has been deactivated', 403);
+    }
+
+    // Verify password
+    const isPasswordMatch = await user.matchPassword(password);
+    if (!isPasswordMatch) {
+      throw new AppError('Wrong username or password', 401);
+    }
 
     // Generate token
     const token = user.getSignedJwtToken();
@@ -35,35 +78,64 @@ class AuthService {
     };
   }
 
-  async login(email, password) {
-    // Check if user exists
-    const user = await User.findOne({ email }).select('+password');
+  async verifyEmail(email, token) {
+    const user = await User.findOne({ 
+      email,
+      emailVerificationToken: token,
+      emailVerificationExpire: { $gt: Date.now() }
+    });
+
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Invalid or expired verification token', 400);
     }
 
-    // Check if user is active
-    if (!user.isActive) {
-      throw new AppError('Your account has been deactivated', 403);
-    }
+    // Mark email as verified
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    await user.save({ validateBeforeSave: false });
 
-    // Verify password
-    const isPasswordMatch = await user.matchPassword(password);
-    if (!isPasswordMatch) {
-      throw new AppError('Invalid credentials', 401);
-    }
-
-    // Generate token
-    const token = user.getSignedJwtToken();
+    // Generate token for auto-login
+    const authToken = user.getSignedJwtToken();
 
     return {
-      token,
+      message: 'Email verified successfully! You can now log in.',
+      token: authToken,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role
       }
+    };
+  }
+
+  async resendVerification(email) {
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      throw new AppError('No user found with this email', 404);
+    }
+
+    if (user.isEmailVerified) {
+      throw new AppError('Email is already verified', 400);
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomInt(100000, 999999).toString();
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    await user.save({ validateBeforeSave: false });
+
+    // Send verification email
+    const emailSent = await emailService.sendVerificationEmail(email, verificationToken, user.name);
+
+    if (!emailSent) {
+      throw new AppError('Failed to send verification email. Please try again later.', 500);
+    }
+
+    return {
+      message: 'Verification email sent successfully'
     };
   }
 
