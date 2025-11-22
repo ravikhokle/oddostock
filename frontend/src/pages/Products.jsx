@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { productAPI, categoryAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { Plus, Search, Package, X, Edit, Trash2 } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -30,6 +31,32 @@ const Products = () => {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  // Refresh when stock or product events occur
+  const socket = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+
+    const refresh = () => fetchProducts();
+
+    socket.on('stock:updated', refresh);
+    socket.on('product:created', refresh);
+    socket.on('product:updated', refresh);
+    socket.on('receipt:validated', refresh);
+    socket.on('delivery:validated', refresh);
+    socket.on('transfer:validated', refresh);
+    socket.on('adjustment:validated', refresh);
+
+    return () => {
+      socket.off('stock:updated', refresh);
+      socket.off('product:created', refresh);
+      socket.off('product:updated', refresh);
+      socket.off('receipt:validated', refresh);
+      socket.off('delivery:validated', refresh);
+      socket.off('transfer:validated', refresh);
+      socket.off('adjustment:validated', refresh);
+    };
+  }, [socket]);
 
   const fetchProducts = async () => {
     try {
