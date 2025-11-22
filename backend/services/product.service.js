@@ -4,7 +4,9 @@ import { AppError } from '../middleware/errorHandler.js';
 
 class ProductService {
   async createProduct(productData) {
+    // Create the product with initialStock included
     const product = await Product.create(productData);
+    
     return product;
   }
 
@@ -58,7 +60,13 @@ class ProductService {
           }
         ]);
 
-        const totalStock = stockByLocation.reduce((sum, item) => sum + item.totalQuantity, 0);
+        // Calculate total stock from ledger entries
+        const totalStockFromLedger = stockByLocation.reduce((sum, item) => sum + item.totalQuantity, 0);
+        
+        // If no ledger entries exist, use initialStock from product model
+        const totalStock = stockByLocation.length > 0 ? totalStockFromLedger : (product.initialStock || 0);
+
+        console.log(`Product ${product.name}: ledger entries=${stockByLocation.length}, ledgerStock=${totalStockFromLedger}, initialStock=${product.initialStock}, finalStock=${totalStock}`);
 
         return {
           ...product.toObject(),
@@ -107,7 +115,11 @@ class ProductService {
       }
     ]);
 
-    const totalStock = stockByLocation.reduce((sum, item) => sum + item.totalQuantity, 0);
+    // Calculate total stock from ledger entries
+    const totalStockFromLedger = stockByLocation.reduce((sum, item) => sum + item.totalQuantity, 0);
+    
+    // If no ledger entries exist, use initialStock from product model
+    const totalStock = stockByLocation.length > 0 ? totalStockFromLedger : (product.initialStock || 0);
 
     return {
       ...product.toObject(),
@@ -117,6 +129,8 @@ class ProductService {
   }
 
   async updateProduct(productId, updates) {
+    console.log('Updating product:', productId, 'with data:', updates);
+    
     const product = await Product.findByIdAndUpdate(
       productId,
       updates,
@@ -127,6 +141,7 @@ class ProductService {
       throw new AppError('Product not found', 404);
     }
 
+    console.log('Product updated successfully:', product);
     return product;
   }
 

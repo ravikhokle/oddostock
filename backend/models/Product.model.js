@@ -25,7 +25,7 @@ const productSchema = new mongoose.Schema({
   unitOfMeasure: {
     type: String,
     required: [true, 'Unit of measure is required'],
-    enum: ['kg', 'g', 'l', 'ml', 'pcs', 'box', 'carton', 'pallet'],
+    enum: ['pcs', 'box', 'kg', 'liter', 'meter'],
     default: 'pcs'
   },
   cost: {
@@ -35,8 +35,13 @@ const productSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
+    required: [true, 'Price is required'],
+    min: [0, 'Price must be greater than or equal to 0']
+  },
+  initialStock: {
+    type: Number,
     default: 0,
-    min: 0
+    min: [0, 'Initial stock must be greater than or equal to 0']
   },
   reorderLevel: {
     type: Number,
