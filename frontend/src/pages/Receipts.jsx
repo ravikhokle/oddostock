@@ -42,7 +42,8 @@ const Receipts = () => {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Receipts</h1>
         <div className="card">
-          <p>Manage incoming stock receipts here. Full implementation coming soon.</p>
+          <p>
+            Recieve track and manage your stock.</p>
         </div>
         <div className="flex justify-between">
           <input
