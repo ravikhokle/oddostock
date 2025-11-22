@@ -115,7 +115,7 @@ const Categories = () => {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="btn-primary flex items-center gap-2"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:shadow-lg hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 active:scale-95"
           >
             <Plus className="w-5 h-5" />
             Add Category
