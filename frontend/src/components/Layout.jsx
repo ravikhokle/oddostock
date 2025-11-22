@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import {
-  Link,
-  useLocation,
-  useNavigate
-} from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
@@ -20,8 +16,7 @@ import {
   Menu,
   X,
   Bell,
-  Search,
-  Check
+  Search
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -145,17 +140,6 @@ const Layout = ({ children }) => {
             </div>
 
             <div className="flex items-center gap-4">
-              {location.pathname === '/profile' && (
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('save-profile'))}
-                  className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-full shadow-md hover:from-primary-700 hover:to-primary-600 transform hover:-translate-y-0.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-300"
-                  title="Save profile changes"
-                  aria-label="Save profile changes"
-                >
-                  <Check className="w-4 h-4" />
-                  <span className="text-sm font-medium">Save changes</span>
-                </button>
-              )}
               <button className="p-2 rounded-lg hover:bg-gray-100 relative">
                 <Bell className="w-6 h-6 text-gray-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>

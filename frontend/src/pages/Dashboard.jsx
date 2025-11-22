@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { dashboardAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [kpis, setKpis] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,14 @@ const Dashboard = () => {
       icon: ArrowLeftRight,
       color: 'bg-purple-500',
       href: '/transfers?status=waiting'
+    },
+    // Notifications card -> navigates to notifications page
+    {
+      name: 'Notifications',
+      value: kpis?.unreadNotifications || (kpis?.recentActivities?.filter(a => !a.read).length || 0),
+      icon: AlertTriangle,
+      color: 'bg-red-500',
+      href: '/notifications'
     }
   ];
 
@@ -162,7 +172,11 @@ const Dashboard = () => {
           {operationStats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.name} className="stat-card cursor-pointer hover:shadow-lg transition-shadow">
+              <div
+                key={stat.name}
+                className="stat-card cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => { if (stat.href) navigate(stat.href); }}
+              >
                 <div className="flex items-center gap-4">
                   <div className={`${stat.color} p-3 rounded-lg`}>
                     <Icon className="w-6 h-6 text-white" />
