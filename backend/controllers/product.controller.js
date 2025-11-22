@@ -3,6 +3,10 @@ import productService from '../services/product.service.js';
 export const createProduct = async (req, res, next) => {
   try {
     const product = await productService.createProduct(req.body);
+    // Emit socket event so dashboards and other clients can update
+    const io = req.app.get('io');
+    if (io) io.emit('product:created', product);
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
