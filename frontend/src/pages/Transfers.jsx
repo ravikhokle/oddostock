@@ -6,7 +6,7 @@ const Transfers = () => {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Internal Transfers</h1>
         <div className="card">
-          <p>Manage internal stock transfers here. Full implementation coming soon.</p>
+          <p>Manage your internal Transfers</p>
         </div>
       </div>
     </Layout>
